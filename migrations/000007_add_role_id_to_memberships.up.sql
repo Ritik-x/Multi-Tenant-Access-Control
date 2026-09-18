@@ -1,0 +1,6 @@
+ALTER TABLE memberships
+DROP COLUMN role;
+ALTER TABLE memberships
+ADD COLUMN role_id UUID NOT NULL 
+REFERENCES roles(id)
+   ON DELETE RESTRICT; 
