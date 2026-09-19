@@ -17,6 +17,7 @@ type Config struct {
 	DBPassword string `env:"DB_PASSWORD"`
 	DBName     string `env:"DB_NAME" env-required:"true"`
 	DBSSLMode  string `env:"DB_SSLMODE" env-default:"disable"`
+	JWTSecret string  `env:"JWT_SECRET" env-required:"true"`
 }
 func Load() *Config{
 var cfg Config
