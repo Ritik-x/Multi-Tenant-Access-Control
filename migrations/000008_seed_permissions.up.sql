@@ -10,4 +10,5 @@ VALUES
     ('team.remove', 'Remove users from the organization'),
 
     ('audit.read', 'View audit logs');
+
     
