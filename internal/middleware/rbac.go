@@ -11,7 +11,7 @@ func RequiredPermission(rbacservice *services.RBACService , requiredPermission s
 	return func(c *gin.Context){
 		userID := c.GetString("user_id")
 		organizationID := c.GetString("organization_id")
-		if userID == "" || organizationID == " "{
+		if userID == "" || organizationID == ""{
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "authentication context missing",
 			})

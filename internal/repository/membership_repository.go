@@ -1,0 +1,33 @@
+package repository
+
+import (
+	"context"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type MemberRepository struct {
+	db *pgxpool.Pool
+}
+
+func NewMembershipRepository(db *pgxpool.Pool) *MemberRepository{
+	return &MemberRepository{
+		db :db,
+	}
+}
+
+func (r *MemberRepository ) GetOrganizationByUserId  (ctx context.Context , userID string ) (string, error) {
+	query := ` SELECT  organization_id  FROM memberships WHERE user_id = $1
+		ORDER BY created_at
+		LIMIT 1 `
+			var organizationID string
+
+			err := r.db.QueryRow(
+				ctx , query , userID ,
+			).Scan(&organizationID)
+if err != nil {
+		return "", err
+	}
+
+	return organizationID, nil
+}

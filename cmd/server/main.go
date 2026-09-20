@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"team-access-control/internal/config"
 	"team-access-control/internal/database"
+	"team-access-control/internal/handlers"
 	"team-access-control/internal/middleware"
 	"team-access-control/internal/repository"
 	"team-access-control/internal/services"
@@ -31,9 +32,18 @@ func main(){
 		//services
 		authService := services.NewAuthService(cfg.JWTSecret)
 
+
+
+		//user
+		userRepository := repository.NewUserRepository(db)
+	
+
 		//repo
 		rbacREpository := repository.NewRBACRepository(db)
-
+authHandler := handlers.NewAuthHandler(
+    authService,
+    userRepository,
+)
 
 			// RBAC service
 			rbacService := services.NewRBACService(rbacREpository)
@@ -44,11 +54,13 @@ func main(){
 		})
 	})
 
+router.POST("/register", authHandler.Register)
 	//protected test routeings
 
 	router.GET("/protected",middleware.AuthMiddleware(cfg.JWTSecret) , middleware.RequiredPermission(
 		rbacService,	"users.read",
 	),
+
 
 	func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{

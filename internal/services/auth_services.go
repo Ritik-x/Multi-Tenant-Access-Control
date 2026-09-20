@@ -50,6 +50,9 @@ func (s *AuthService) CheckPassword( password string,
 
 	return err == nil
 }
+
+
+
 func ( s *AuthService) GenerateAcessTokens (
 	userID string ,
 	organiztionID string , 

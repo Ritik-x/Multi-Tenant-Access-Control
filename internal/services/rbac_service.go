@@ -37,7 +37,7 @@ func (s *RBACService) HasPermission(
 		return false, err
 	}
 
-	for _, permission := range permissions {
+	for _ , permission := range permissions {
 		if permission == requiredPermission {
 			return true, nil
 		}

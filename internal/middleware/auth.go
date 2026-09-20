@@ -22,7 +22,7 @@ func AuthMiddleware(jwtSecret string ) gin.HandlerFunc{
 		return 
 	}
 	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) !=2 || parts[0] != "Bearer"{
+	if len(parts) !=2 || parts[0] != "Bearer"{  //Bearer + token tht's why parts 2
 		c.JSON(http.StatusUnauthorized ,gin.H{
 			"error": "invalid authorization header",
 		})

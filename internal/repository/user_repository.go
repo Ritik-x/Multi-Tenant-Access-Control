@@ -47,3 +47,25 @@ user *models.User,
 		&user.CreatedAt,
 		&user.UpdatedAt,)
 }
+
+func ( r *UserRepository) GetUserByMail (ctx context.Context , email string) ( *models.User , error){
+	query := `SELECT id , name , email ,password_hash created_at,
+			updated_at  FROM users
+		WHERE email = $1`
+		user := &models.User{}
+		err := r.db.QueryRow(	ctx,
+		query,
+		email, ).Scan(&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.PasswordHash,
+		&user.CreatedAt,
+		&user.UpdatedAt,)
+
+		if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+
+}
