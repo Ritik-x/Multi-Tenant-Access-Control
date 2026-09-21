@@ -20,6 +20,7 @@ jwt.RegisteredClaims
 	
 }
 
+
 func NewAuthService (jwtSecret string ) *AuthService{
 	return &AuthService{
 		jwtSecret: jwtSecret,
@@ -73,4 +74,6 @@ claims := Claims{
 	)
 return token.SignedString([]byte(s.jwtSecret))
 }
+
+
 

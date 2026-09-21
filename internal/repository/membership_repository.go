@@ -16,6 +16,33 @@ func NewMembershipRepository(db *pgxpool.Pool) *MemberRepository{
 	}
 }
 
+func (r *MemberRepository) CreateMembership(
+	ctx context.Context,
+	userID string,
+	organizationID string,
+	roleID string,
+) error {
+
+	query := `
+		INSERT INTO memberships (
+			user_id,
+			organization_id,
+			role_id
+		)
+		VALUES ($1, $2, $3)
+	`
+
+	_, err := r.db.Exec(
+		ctx,
+		query,
+		userID,
+		organizationID,
+		roleID,
+	)
+	return err
+
+}
+
 func (r *MemberRepository ) GetOrganizationByUserId  (ctx context.Context , userID string ) (string, error) {
 	query := ` SELECT  organization_id  FROM memberships WHERE user_id = $1
 		ORDER BY created_at

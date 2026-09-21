@@ -13,14 +13,17 @@ import (
 type AuthHandler struct {
 	authService *services.AuthService
 	userRepo *repository.UserRepository
+	membershipRepo   *repository.MemberRepository
 }
 func NewAuthHandler (
 	authService  *services.AuthService,
 	userRepo *repository.UserRepository,
+	membershipRepo   *repository.MemberRepository,
 ) *AuthHandler{
 	return &AuthHandler{
 		authService: authService,
 		userRepo:    userRepo,
+		membershipRepo: membershipRepo,
 	}
 }
 
@@ -28,6 +31,11 @@ type RegisterRequest struct {
 	Name string `json:"name" binding:"required"`
 		Email string `json:"email" binding:"required"`
 			Password string `json:"password" binding:"required,min=8"`
+
+}
+type LoginRequest struct {
+	Email string  `json:"email" binding:"required,email"`
+	Password string  `json:"password" binding:"required"`
 
 }
 
@@ -69,4 +77,61 @@ if err := h.userRepo.CreateUser(
 		"name":       user.Name,
 		"email":      user.Email,
 		"created_at": user.CreatedAt,})
+}
+func ( h *AuthHandler) Login ( c *gin.Context){
+
+	var req LoginRequest
+	if err := c.ShouldBindBodyWithJSON(&req) ; err !=nil{
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request",
+		})
+		return
+	}
+
+	req.Email =strings.ToLower(strings.TrimSpace(req.Email))
+
+	user , err := h.userRepo.GetUserByMail(
+		c.Request.Context(),
+		req.Email,
+	)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "invalid email or password",
+		})
+		return
+	}
+	if !h.authService.CheckPassword(
+		req.Password,
+		user.PasswordHash,
+	){c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "invalid email or password",
+		})
+		return
+	}
+
+
+
+	organizationId , err := h.membershipRepo.GetOrganizationByUserId(c.Request.Context(),user.ID,
+)
+if err != nil {
+	c.JSON(http.StatusUnauthorized, gin.H{
+		"error": "user is not a member of any organization",
+	})
+	return
+}
+	accessToken , err := h.authService.GenerateAcessTokens(
+		user.ID,
+		organizationId,
+		
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to generate access token",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"access_token": accessToken,
+		"token_type":   "Bearer",
+	})
 }

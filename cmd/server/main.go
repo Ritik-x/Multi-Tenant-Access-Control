@@ -37,12 +37,17 @@ func main(){
 		//user
 		userRepository := repository.NewUserRepository(db)
 	
+// membership
+
+membershipRepository := repository.NewMembershipRepository(db)
 
 		//repo
 		rbacREpository := repository.NewRBACRepository(db)
 authHandler := handlers.NewAuthHandler(
     authService,
     userRepository,
+	membershipRepository,
+	
 )
 
 			// RBAC service
