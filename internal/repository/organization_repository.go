@@ -2,15 +2,14 @@ package repository
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgxpool"
+	// "github.com/jackc/pgx/v5/pgxpool"
 )
 
 type OrganizationRepository struct {
-db *pgxpool.Pool
+db DBTX
 }
 
-func NewOrganizationRepository( db *pgxpool.Pool) *OrganizationRepository { 
+func NewOrganizationRepository( db DBTX) *OrganizationRepository { 
 	return &OrganizationRepository{
 		db:db,
 	}

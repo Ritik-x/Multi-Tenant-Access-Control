@@ -2,15 +2,14 @@ package repository
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgxpool"
+	// "github.com/jackc/pgx/v5/pgxpool"
 )
 
 type MemberRepository struct {
-	db *pgxpool.Pool
+	db DBTX
 }
 
-func NewMembershipRepository(db *pgxpool.Pool) *MemberRepository{
+func NewMembershipRepository(db DBTX) *MemberRepository{
 	return &MemberRepository{
 		db :db,
 	}
