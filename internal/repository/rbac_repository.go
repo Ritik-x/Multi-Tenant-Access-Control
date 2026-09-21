@@ -9,21 +9,19 @@ import (
 // import "github.com/jackc/pgx/v5"
 
 type RBACrepository struct {
-db  *pgxpool.Pool
+	db *pgxpool.Pool
 }
 
-func NewRBACRepository ( db *pgxpool.Pool) * RBACrepository{
+func NewRBACRepository(db *pgxpool.Pool) *RBACrepository {
 	return &RBACrepository{
-		db : db,
-
+		db: db,
 	}
 }
 
-func ( r *RBACrepository) GetUserPermissions (
+func (r *RBACrepository) GetUserPermissions(
 	ctx context.Context,
-	userId string ,
-	organizationId string ,
-
+	userId string,
+	organizationId string,
 
 ) ([]string, error) {
 	query := ` SELECT DISTINCT p.name
@@ -36,17 +34,17 @@ func ( r *RBACrepository) GetUserPermissions (
 			ON p.id = rp.permission_id
 		WHERE m.user_id = $1
 		  AND m.organization_id = $2`
-		  rows , err :=r.db.Query(ctx , query , userId , organizationId)
-		  if err != nil {
+	rows, err := r.db.Query(ctx, query, userId, organizationId)
+	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var permissions [] string
+	var permissions []string
 	for rows.Next() {
-		var permission string 
-		if err := rows.Scan(&permission) ; err != nil {
-				return nil, err
+		var permission string
+		if err := rows.Scan(&permission); err != nil {
+			return nil, err
 		}
 
 		permissions = append(permissions, permission)

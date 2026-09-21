@@ -11,16 +11,15 @@ type UserRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewUserRepository ( db *pgxpool.Pool) *UserRepository{
+func NewUserRepository(db *pgxpool.Pool) *UserRepository {
 	return &UserRepository{
 		db: db,
 	}
 }
 
-
-func ( r *UserRepository) CreateUser (
-	ctx context.Context , 
-user *models.User,
+func (r *UserRepository) CreateUser(
+	ctx context.Context,
+	user *models.User,
 ) error {
 
 	query := ` INSERT INTO users (
@@ -39,30 +38,30 @@ user *models.User,
 			updated_at
 			`
 
-			return r.db.QueryRow(
-				ctx , query , user.Name , user.Email 	,user.PasswordHash,	).Scan(&user.ID,
+	return r.db.QueryRow(
+		ctx, query, user.Name, user.Email, user.PasswordHash).Scan(&user.ID,
 		&user.Name,
 		&user.Email,
 		&user.PasswordHash,
 		&user.CreatedAt,
-		&user.UpdatedAt,)
+		&user.UpdatedAt)
 }
 
-func ( r *UserRepository) GetUserByMail (ctx context.Context , email string) ( *models.User , error){
+func (r *UserRepository) GetUserByMail(ctx context.Context, email string) (*models.User, error) {
 	query := `SELECT id , name , email ,password_hash created_at,
 			updated_at  FROM users
 		WHERE email = $1`
-		user := &models.User{}
-		err := r.db.QueryRow(	ctx,
+	user := &models.User{}
+	err := r.db.QueryRow(ctx,
 		query,
-		email, ).Scan(&user.ID,
+		email).Scan(&user.ID,
 		&user.Name,
 		&user.Email,
 		&user.PasswordHash,
 		&user.CreatedAt,
-		&user.UpdatedAt,)
+		&user.UpdatedAt)
 
-		if err != nil {
+	if err != nil {
 		return nil, err
 	}
 

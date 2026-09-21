@@ -9,9 +9,9 @@ type MemberRepository struct {
 	db DBTX
 }
 
-func NewMembershipRepository(db DBTX) *MemberRepository{
+func NewMembershipRepository(db DBTX) *MemberRepository {
 	return &MemberRepository{
-		db :db,
+		db: db,
 	}
 }
 
@@ -42,16 +42,16 @@ func (r *MemberRepository) CreateMembership(
 
 }
 
-func (r *MemberRepository ) GetOrganizationByUserId  (ctx context.Context , userID string ) (string, error) {
+func (r *MemberRepository) GetOrganizationByUserId(ctx context.Context, userID string) (string, error) {
 	query := ` SELECT  organization_id  FROM memberships WHERE user_id = $1
 		ORDER BY created_at
 		LIMIT 1 `
-			var organizationID string
+	var organizationID string
 
-			err := r.db.QueryRow(
-				ctx , query , userID ,
-			).Scan(&organizationID)
-if err != nil {
+	err := r.db.QueryRow(
+		ctx, query, userID,
+	).Scan(&organizationID)
+	if err != nil {
 		return "", err
 	}
 
