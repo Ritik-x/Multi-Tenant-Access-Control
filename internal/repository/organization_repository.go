@@ -27,3 +27,5 @@ func ( r *OrganizationRepository ) CreateOrganizationId(ctx context.Context , na
 	}
 	return OrganizationId, nil
 }
+
+

@@ -2,11 +2,16 @@ package repository
 
 import (
 	"context"
+	"team-access-control/internal/models"
 	// "github.com/jackc/pgx/v5/pgxpool"
 )
 
 type MemberRepository struct {
 	db DBTX
+}
+
+func (r *MemberRepository) CreateUser(ctx context.Context, user *models.User) any {
+	panic("unimplemented")
 }
 
 func NewMembershipRepository(db DBTX) *MemberRepository {
