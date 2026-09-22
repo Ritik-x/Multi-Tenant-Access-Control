@@ -6,23 +6,23 @@ import (
 )
 
 type OrganizationRepository struct {
-	db DBTX
+db DBTX
 }
 
-func NewOrganizationRepository(db DBTX) *OrganizationRepository {
+func NewOrganizationRepository( db DBTX) *OrganizationRepository { 
 	return &OrganizationRepository{
-		db: db,
+		db:db,
 	}
 }
-func (r *OrganizationRepository) CreateOrganizationId(ctx context.Context, name string, slug string) (string, error) {
+func ( r *OrganizationRepository ) CreateOrganizationId(ctx context.Context , name string , slug string ) (string, error) {
 	query := ` INSERT INTO organizations (
-	name , slug) VALUES ($1 , $2) RETURNING id`
+	name , slug) VALUES ($1 , $2) RETURNING id` 
 	var OrganizationId string
-	err := r.db.QueryRow(ctx, query, name, slug).Scan(&OrganizationId)
-	if err != nil {
+	err := r.db.QueryRow(ctx , query , name , slug).Scan(&OrganizationId) 
+		if err != nil {
 		return "", err
 	}
-	if err != nil {
+		if err != nil {
 		return "", err
 	}
 	return OrganizationId, nil

@@ -31,3 +31,14 @@ func (r *RoleRepository) CreateRole(ctx context.Context, organizationID string, 
 	}
 	return roleID, nil
 }
+
+
+
+func ( r *RoleRepository) AssignPermission( ctx  context.Context  , roleID string  , permission [] string) error{
+	query := `INSERT INTO role_permissions (role_id, permission_id)  SELECT $1, id
+		FROM  permissions
+		WHERE name = ANY($2)`
+
+		_ , err:= r.db.Exec(ctx , query , roleID, permission , )
+		return err
+}

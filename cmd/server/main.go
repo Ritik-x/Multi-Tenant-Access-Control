@@ -32,24 +32,40 @@ func main(){
 		//services
 		authService := services.NewAuthService(cfg.JWTSecret)
 
-
-
-		//user
-		userRepository := repository.NewUserRepository(db)
-	
-// membership
-
+			//user
+userRepository := repository.NewUserRepository(db)
+//membership
 membershipRepository := repository.NewMembershipRepository(db)
+//organization 
+organizationRepository := repository.NewOrganizationRepository(db)
+//role
+roleRepository := repository.NewRoleRepository(db)
+
+
+//registeration service
+registrationService := services.NewRegistrationService(
+    db,
+    userRepository,
+    organizationRepository,
+    roleRepository,
+    membershipRepository,
+)
+	
+
 
 		//repo
 		rbacREpository := repository.NewRBACRepository(db)
+	
+
+
+
 authHandler := handlers.NewAuthHandler(
     authService,
     userRepository,
 	membershipRepository,
+	registrationService,
 	
 )
-
 			// RBAC service
 			rbacService := services.NewRBACService(rbacREpository)
 	router := gin.Default()
@@ -60,6 +76,7 @@ authHandler := handlers.NewAuthHandler(
 	})
 
 router.POST("/register", authHandler.Register)
+router.POST("/login", authHandler.Login)
 	//protected test routeings
 
 	router.GET("/protected",middleware.AuthMiddleware(cfg.JWTSecret) , middleware.RequiredPermission(
