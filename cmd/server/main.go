@@ -82,6 +82,7 @@ authHandler := handlers.NewAuthHandler(
 
 router.POST("/register", authHandler.Register)
 router.POST("/login", authHandler.Login)
+router.POST("/refresh",authHandler.Refresh)
 	//protected test routeings
 
 	router.GET("/protected",middleware.AuthMiddleware(cfg.JWTSecret) , middleware.RequiredPermission(

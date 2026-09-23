@@ -88,9 +88,19 @@ func ( s *AuthService) GenerateRefreshToken () (string ,string , error){
 	if err != nil {
 				return "", "", err
 	}
-	refreshToken := base64.URLEncoding.EncodeToString(randomBytes)
+
+	refreshToken := base64.RawURLEncoding.EncodeToString(randomBytes)
+
+	refreshTokenHash := s.HashRefreshToken(refreshToken)
+
+	return refreshToken, refreshTokenHash, nil
+}
+
+func (s *AuthService) HashRefreshToken(
+	refreshToken string,
+) string {
+
 	hash := sha256.Sum256([]byte(refreshToken))
 
-	refreshTokenHash := base64.URLEncoding.EncodeToString(hash[:])
-	return refreshToken, refreshTokenHash, nil
+	return base64.RawURLEncoding.EncodeToString(hash[:])
 }

@@ -19,6 +19,10 @@ type AuthHandler struct {
 		sessionRepo        *repository.SessionRepository
 }
 
+type RefreshTRequest struct {
+RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
 func NewAuthHandler(
 	authService *services.AuthService,
 	userRepo *repository.UserRepository,
@@ -200,3 +204,52 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		"token_type":    "Bearer",
 	})
 }
+
+func (h *AuthHandler) Refresh (c *gin.Context){
+	var req RefreshTRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request",
+			
+		})
+		return
+	}
+
+	refreshTOkenHash := h.authService.HashRefreshToken(req.RefreshToken)
+
+
+	sessionID , userID , organizationID , expiresAT , err := h.sessionRepo.GetSessionByRefreshTokenHash(c.Request.Context() , refreshTOkenHash)
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if time.Now().After(expiresAT){
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":"refresh token expired",
+		})
+		return 
+	}
+	acessToken , err := h.authService.GenerateAcessTokens(userID,
+		organizationID,)
+		if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to generate access token",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+
+
+		"message": "refresh endpoint reached",
+		"acess-Token":acessToken,
+		"session-ID":sessionID,
+	})
+}
+
+
+

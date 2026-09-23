@@ -37,8 +37,16 @@ func ( r *SessionRepository ) CreateSession (
 }
 
 func (r *SessionRepository  ) GetSessionByRefreshTokenHash( ctx context.Context , refreshTokenHash string ) (string, string, string, time.Time, error){
-	query:= `SELECT id , user_id , organization_id , expires_at  FROM sessions WHERE efresh_token_hash = $1
-		  AND revoked_at IS NULL`
+	query:= `
+	SELECT
+		id,
+		user_id,
+		organization_id,
+		expires_at
+	FROM sessions
+	WHERE refresh_token_hash = $1
+	  AND revoked_at IS NULL
+`
 
 		  var (sessionID string 
 		userId string 
