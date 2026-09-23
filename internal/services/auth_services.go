@@ -1,6 +1,9 @@
 package services
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -77,3 +80,17 @@ return token.SignedString([]byte(s.jwtSecret))
 
 
 
+
+
+func ( s *AuthService) GenerateRefreshToken () (string ,string , error){
+	randomBytes := make([] byte , 32)
+	_,err := rand.Read(randomBytes)
+	if err != nil {
+				return "", "", err
+	}
+	refreshToken := base64.URLEncoding.EncodeToString(randomBytes)
+	hash := sha256.Sum256([]byte(refreshToken))
+
+	refreshTokenHash := base64.URLEncoding.EncodeToString(hash[:])
+	return refreshToken, refreshTokenHash, nil
+}

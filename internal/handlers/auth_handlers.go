@@ -6,6 +6,7 @@ import (
 	"strings"
 	"team-access-control/internal/repository"
 	"team-access-control/internal/services"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,6 +16,7 @@ type AuthHandler struct {
 	userRepo             *repository.UserRepository
 	membershipRepo       *repository.MemberRepository
 	registerationService *services.RegistrationService
+		sessionRepo        *repository.SessionRepository
 }
 
 func NewAuthHandler(
@@ -22,12 +24,14 @@ func NewAuthHandler(
 	userRepo *repository.UserRepository,
 	membershipRepo *repository.MemberRepository,
 	registerationService *services.RegistrationService,
+		sessionRepo *repository.SessionRepository,
 ) *AuthHandler {
 	return &AuthHandler{
 		authService:          authService,
 		userRepo:             userRepo,
 		membershipRepo:       membershipRepo,
 		registerationService: registerationService,
+		sessionRepo :sessionRepo ,
 	}
 }
 
@@ -104,6 +108,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 func (h *AuthHandler) Login(c *gin.Context) {
 
 	var req LoginRequest
+
 	if err := c.ShouldBindBodyWithJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid request",
@@ -117,21 +122,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		c.Request.Context(),
 		req.Email,
 	)
-	// if err != nil {
-	// 	c.JSON(http.StatusUnauthorized, gin.H{
-	// 		"error": "invalid email or password",
-	// 	})
-	// 	return
-	// }
-	
-		if err != nil {
-    log.Println("Login ERROR:", err)
 
-    c.JSON(http.StatusInternalServerError, gin.H{
-        "error": err.Error(),
-    })
-    return
-}
+	if err != nil {
+		log.Println("Login ERROR:", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
 	if !h.authService.CheckPassword(
 		req.Password,
@@ -143,25 +142,61 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	organizationId, err := h.membershipRepo.GetOrganizationByUserId(c.Request.Context(), user.ID)
+	organizationId, err :=
+		h.membershipRepo.GetOrganizationByUserId(
+			c.Request.Context(),
+			user.ID,
+		)
+
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "user is not a member of any organization",
 		})
 		return
 	}
+
 	accessToken, err := h.authService.GenerateAcessTokens(
 		user.ID,
 		organizationId,
 	)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to generate access token",
 		})
 		return
 	}
+
+	refreshToken, refreshHashToken, err :=
+		h.authService.GenerateRefreshToken()
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to generate refresh token",
+		})
+		return
+	}
+
+	expiresAt := time.Now().Add(30 * 24 * time.Hour)
+
+	_, err = h.sessionRepo.CreateSession(
+		c.Request.Context(),
+		user.ID,
+		organizationId,
+		refreshHashToken,
+		expiresAt,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to create session",
+		})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"access_token": accessToken,
-		"token_type":   "Bearer",
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"token_type":    "Bearer",
 	})
 }

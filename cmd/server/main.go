@@ -41,6 +41,9 @@ organizationRepository := repository.NewOrganizationRepository(db)
 //role
 roleRepository := repository.NewRoleRepository(db)
 
+//service role
+
+serviceRepository :=repository.NewSessionRepository(db)
 
 //registeration service
 registrationService := services.NewRegistrationService(
@@ -49,6 +52,7 @@ registrationService := services.NewRegistrationService(
     organizationRepository,
     roleRepository,
     membershipRepository,
+
 )
 	
 
@@ -64,6 +68,7 @@ authHandler := handlers.NewAuthHandler(
     userRepository,
 	membershipRepository,
 	registrationService,
+	serviceRepository,
 	
 )
 			// RBAC service
