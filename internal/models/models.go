@@ -41,3 +41,11 @@ type Permission struct {
 			Description *string   `json:"description,omitempty"`
 			CreatedAt   time.Time `json:"created_at"`
 }
+type Session struct {
+	ID             string     `json:"id"`
+	UserID         string     `json:"user_id"`
+	OrganizationID string     `json:"organization_id"`
+	ExpiresAt      time.Time  `json:"expires_at"`
+	CreatedAt      time.Time  `json:"created_at"`
+	RevokedAt      *time.Time `json:"revoked_at,omitempty"`
+}

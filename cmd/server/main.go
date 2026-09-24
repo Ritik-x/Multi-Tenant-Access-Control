@@ -14,97 +14,90 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func main(){
+func main() {
 
-
-	if err := godotenv.Load() ; err !=nil{
-			log.Println("No .env file found")
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
 	}
 	cfg := config.Load()
 
-	db , err := database.NewPostgres(cfg)
+	db, err := database.NewPostgres(cfg)
 	if err != nil {
 		log.Fatal("failed to connect to database: ", err)
 	}
-		defer db.Close()
+	defer db.Close()
 
+	//services
+	authService := services.NewAuthService(cfg.JWTSecret)
 
-		//services
-		authService := services.NewAuthService(cfg.JWTSecret)
+	//user
+	userRepository := repository.NewUserRepository(db)
+	//membership
+	membershipRepository := repository.NewMembershipRepository(db)
+	//organization
+	organizationRepository := repository.NewOrganizationRepository(db)
+	//role
+	roleRepository := repository.NewRoleRepository(db)
 
-			//user
-userRepository := repository.NewUserRepository(db)
-//membership
-membershipRepository := repository.NewMembershipRepository(db)
-//organization 
-organizationRepository := repository.NewOrganizationRepository(db)
-//role
-roleRepository := repository.NewRoleRepository(db)
+	//session
+	sessionRepository := repository.NewSessionRepository(db)
+	sessionService := services.NewSessionService(
+		db,
+		sessionRepository,
+		authService,
+	)
+	//service role
 
-//service role
+	//registeration service
+	registrationService := services.NewRegistrationService(
+		db,
+		userRepository,
+		organizationRepository,
+		roleRepository,
+		membershipRepository,
+	)
 
-serviceRepository :=repository.NewSessionRepository(db)
+	//repo
+	rbacREpository := repository.NewRBACRepository(db)
 
-//registeration service
-registrationService := services.NewRegistrationService(
-    db,
-    userRepository,
-    organizationRepository,
-    roleRepository,
-    membershipRepository,
-
-)
-	
-
-
-		//repo
-		rbacREpository := repository.NewRBACRepository(db)
-	
-
-
-
-authHandler := handlers.NewAuthHandler(
-    authService,
-    userRepository,
-	membershipRepository,
-	registrationService,
-	serviceRepository,
-	
-)
-			// RBAC service
-			rbacService := services.NewRBACService(rbacREpository)
+	authHandler := handlers.NewAuthHandler(
+		authService,
+		userRepository,
+		membershipRepository,
+		registrationService,
+		sessionRepository,
+		sessionService,
+	)
+	// RBAC service
+	rbacService := services.NewRBACService(rbacREpository)
 	router := gin.Default()
-	router.GET("/health" , func(c *gin.Context){
-		c.JSON(http.StatusOK , gin.H{
-			"status":"ok",
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status": "ok",
 		})
 	})
 
-router.POST("/register", authHandler.Register)
-router.POST("/login", authHandler.Login)
-router.POST("/refresh",authHandler.Refresh)
+	router.POST("/register", authHandler.Register)
+	router.POST("/login", authHandler.Login)
+	router.POST("/refresh", authHandler.Refresh)
+	router.POST("/logout", authHandler.Logout)
+	router.GET("/sessions", middleware.AuthMiddleware(cfg.JWTSecret), authHandler.GetSessions)
 	//protected test routeings
 
-	router.GET("/protected",middleware.AuthMiddleware(cfg.JWTSecret) , middleware.RequiredPermission(
-		rbacService,	"users.read",
+	router.GET("/protected", middleware.AuthMiddleware(cfg.JWTSecret), middleware.RequiredPermission(
+		rbacService, "users.read",
 	),
 
-
-	func(c *gin.Context) {
+		func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"message": "You have users.read permission",
 			})
 		},
+	)
 
-	
+	_ = authService
 
-
-)
-
-_ = authService
-
-
-if err := 	router.Run(":"+ cfg.Port) ; err != nil {
+	if err := router.Run(":" + cfg.Port); err != nil {
 		log.Fatal(err)
 	}
 }

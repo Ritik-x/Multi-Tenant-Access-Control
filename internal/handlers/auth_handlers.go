@@ -16,11 +16,13 @@ type AuthHandler struct {
 	userRepo             *repository.UserRepository
 	membershipRepo       *repository.MemberRepository
 	registerationService *services.RegistrationService
-		sessionRepo        *repository.SessionRepository
+	sessionService       *services.SessionService
+
+	sessionRepo *repository.SessionRepository
 }
 
 type RefreshTRequest struct {
-RefreshToken string `json:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
 func NewAuthHandler(
@@ -28,14 +30,16 @@ func NewAuthHandler(
 	userRepo *repository.UserRepository,
 	membershipRepo *repository.MemberRepository,
 	registerationService *services.RegistrationService,
-		sessionRepo *repository.SessionRepository,
+	sessionRepo *repository.SessionRepository,
+	sessionService *services.SessionService,
 ) *AuthHandler {
 	return &AuthHandler{
 		authService:          authService,
 		userRepo:             userRepo,
 		membershipRepo:       membershipRepo,
 		registerationService: registerationService,
-		sessionRepo :sessionRepo ,
+		sessionRepo:          sessionRepo,
+		sessionService:       sessionService,
 	}
 }
 
@@ -93,13 +97,13 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	// 	return
 	// }
 	if err != nil {
-    log.Println("REGISTER ERROR:", err)
+		log.Println("REGISTER ERROR:", err)
 
-    c.JSON(http.StatusInternalServerError, gin.H{
-        "error": err.Error(),
-    })
-    return
-}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"id":              user.ID,
@@ -205,20 +209,21 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
-func (h *AuthHandler) Refresh (c *gin.Context){
+func (h *AuthHandler) Refresh(c *gin.Context) {
 	var req RefreshTRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid request",
-			
 		})
 		return
 	}
 
 	refreshTOkenHash := h.authService.HashRefreshToken(req.RefreshToken)
 
-
-	sessionID , userID , organizationID , expiresAT , err := h.sessionRepo.GetSessionByRefreshTokenHash(c.Request.Context() , refreshTOkenHash)
+	// Rotate refresh token.
+	// Session lookup + row locking + revoke + new session
+	// are handled inside the same transaction.
+	newRefreshToken, userID, organizationID, expiresAT, err := h.sessionRepo.GetSessionByRefreshTokenHash(c.Request.Context(), refreshTOkenHash)
 
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -227,15 +232,31 @@ func (h *AuthHandler) Refresh (c *gin.Context){
 		return
 	}
 
-	if time.Now().After(expiresAT){
+	if time.Now().After(expiresAT) {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error":"refresh token expired",
+			"error": "refresh token expired",
 		})
-		return 
+		return
 	}
-	acessToken , err := h.authService.GenerateAcessTokens(userID,
-		organizationID,)
-		if err != nil {
+
+	////rotate refresh token
+
+	// newRefreshToken ,_,err := h.sessionService.RotateRefreshToken(c.Request.Context(),
+	// 		sessionID,
+	// 		userID,
+	// 		organizationID,)
+	// 		if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{
+	// 		"error": "failed to rotate refresh token",
+	// 	})
+	// 	return
+	// }
+
+	//GENerate a new refresh token
+
+	acessToken, err := h.authService.GenerateAcessTokens(userID,
+		organizationID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to generate access token",
 		})
@@ -244,12 +265,69 @@ func (h *AuthHandler) Refresh (c *gin.Context){
 
 	c.JSON(http.StatusOK, gin.H{
 
+		"message":     "refresh endpoint reached",
+		"acess-Token": acessToken,
 
-		"message": "refresh endpoint reached",
-		"acess-Token":acessToken,
-		"session-ID":sessionID,
+		"refesh-token": newRefreshToken,
 	})
 }
 
+func (h *AuthHandler) Logout(c *gin.Context) {
+	var req RefreshTRequest
 
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid request",
+		})
+		return
+	}
 
+	refreshTokenHash := h.authService.HashRefreshToken(
+		req.RefreshToken,
+	)
+
+	sessionId, _, _, _, err := h.sessionRepo.GetSessionByRefreshTokenHash(c.Request.Context(), refreshTokenHash)
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "invalid refresh token",
+		})
+		return
+	}
+	if err := h.sessionRepo.RevokeSession(
+		c.Request.Context(), sessionId,
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to revoke session",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "logged out successfully",
+	})
+
+}
+
+func (h *AuthHandler) GetSessions(c *gin.Context) {
+	userID := c.GetString("user_id")
+
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "authentication context missing",
+		})
+		return
+	}
+
+	sessions, err := h.sessionService.GetActiveSession(c.Request.Context(),
+		userID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to fetch sessions",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"sessions": sessions,
+	})
+}

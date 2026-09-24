@@ -19,4 +19,9 @@ type DBTX interface {
 		sql string,
 		args ...interface{},
 	) pgx.Row
+	Query(
+		ctx context.Context,
+		sql string,
+		args ...interface{},
+	) (pgx.Rows, error)
 }
