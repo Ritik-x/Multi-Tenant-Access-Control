@@ -130,12 +130,22 @@ func (s *SessionService) GetActiveSession(ctx context.Context,
 	)
 }
 
-
-func ( s *SessionService) RevokeSession( ctx context.Context , sessionID string,
-	userID string,) error {
-		return s.sessionRepo.RevokeSessionByUserId(
+func (s *SessionService) RevokeSession(ctx context.Context, sessionID string,
+	userID string) error {
+	return s.sessionRepo.RevokeSessionByUserId(
 		ctx,
 		sessionID,
 		userID,
 	)
-	}
+}
+
+func (s *SessionService) RevokeAllSessions(
+	ctx context.Context,
+	userID string,
+) error {
+
+	return s.sessionRepo.RevokeAllSessions(
+		ctx,
+		userID,
+	)
+}

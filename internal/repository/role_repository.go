@@ -32,13 +32,32 @@ func (r *RoleRepository) CreateRole(ctx context.Context, organizationID string, 
 	return roleID, nil
 }
 
-
-
-func ( r *RoleRepository) AssignPermission( ctx  context.Context  , roleID string  , permission [] string) error{
+func (r *RoleRepository) AssignPermission(ctx context.Context, roleID string, permission []string) error {
 	query := `INSERT INTO role_permissions (role_id, permission_id)  SELECT $1, id
 		FROM  permissions
 		WHERE name = ANY($2)`
 
-		_ , err:= r.db.Exec(ctx , query , roleID, permission , )
-		return err
+	_, err := r.db.Exec(ctx, query, roleID, permission)
+	return err
+}
+
+func (r *RoleRepository) RoleBelongsToOrganization(ctx context.Context, roleId string, organizationId string) (bool, error) {
+	query := `SELECT EXISTS (
+			SELECT 1
+			FROM roles
+			WHERE id = $1
+			  AND organization_id = $2
+		)`
+
+	var exists bool
+	err := r.db.QueryRow(ctx,
+		query,
+		roleId,
+		organizationId).Scan(&exists)
+
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5"
 )
 
 type AuthHandler struct {
@@ -331,3 +333,75 @@ func (h *AuthHandler) GetSessions(c *gin.Context) {
 		"sessions": sessions,
 	})
 }
+
+
+
+
+func ( h *AuthHandler) DeleteRevoke(c *gin.Context){
+	userID := c.GetString("user_id")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "authentication context missing",
+		})
+		return
+	}
+	sessionID := c.Param("id")
+
+	if sessionID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "session id is required",
+		})
+		return
+	}
+err := h.sessionService.RevokeSession(
+    c.Request.Context(),
+    sessionID,
+    userID,
+)
+	if err !=nil {
+		if errors.Is(err , pgx.ErrNoRows){
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "session not found",
+			})
+			return
+		}
+			c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to revoke session",
+		})
+		return
+		}
+		c.JSON(http.StatusOK, gin.H{
+		"message": "session revoked successfully",
+	})
+
+
+
+	}
+
+
+
+
+	func ( h *AuthHandler) RevokeAllsessions ( c *gin.Context){
+		userID := c.GetString("user_id")
+		if userID == ""{
+			c.JSON(http.StatusUnauthorized , gin.H{
+					"error": "authentication context missing",
+			})
+			return
+
+		}
+		err := h.sessionRepo.RevokeAllSessions(
+			c.Request.Context(),userID,
+		)
+		if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to revoke sessions",
+		})
+		return
+	}
+
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "all sessions revoked successfully",
+	})
+	}

@@ -151,3 +151,20 @@ func (r *SessionRepository) RevokeSessionByUserId(ctx context.Context, sessionId
 	}
 	return nil
 }
+
+func (r *SessionRepository) RevokeAllSessions(ctx context.Context, userID string) error {
+	query := `
+		UPDATE sessions
+		SET revoked_at = NOW()
+		WHERE user_id = $1
+		  AND revoked_at IS NULL
+	`
+
+	_, err := r.db.Exec(
+		ctx,
+		query,
+		userID,
+	)
+
+	return err
+}

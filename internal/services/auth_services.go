@@ -104,3 +104,14 @@ func (s *AuthService) HashRefreshToken(
 
 	return base64.RawURLEncoding.EncodeToString(hash[:])
 }
+
+func ( s *AuthService) GenerateInvitationToken() (string , string , error){
+	randomBytes:= make([]byte , 32)
+	_,err := rand.Read(randomBytes)
+	if err != nil {
+		return "", "", err
+	}
+	invitationToken := base64.URLEncoding.EncodeToString(randomBytes)
+		invitationTokenHash := s.HashRefreshToken(invitationToken)
+		return invitationToken, invitationTokenHash, nil
+}
