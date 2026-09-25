@@ -38,3 +38,107 @@ func (r *InviationRepo) CreateInviatation(
 	return invitationID, nil
 
 }
+
+
+func ( r *InviationRepo) GetInvitationByTokenHash(ctx context.Context , tokenHash string)(string , string , string , string , time.Time , *time.Time , error){
+
+	query := `SELECT id , organization_id email,
+			role_id,
+			expires_at,
+			accepted_at
+		FROM invitations
+		WHERE token_hash = $1`
+
+		var (
+			invitationID string
+			organizationID string 
+			email string 
+			roleID         string
+		expiresAt      time.Time
+		acceptedAt     *time.Time
+		)
+		err := r.db.QueryRow(ctx , query , tokenHash).Scan(&invitationID,
+		&organizationID,
+		&email,
+		&roleID,
+		&expiresAt,
+		&acceptedAt,)
+		if err != nil {
+		return "", "", "", "", time.Time{}, nil, err
+	}
+		return invitationID, organizationID, email, roleID, expiresAt, acceptedAt, nil
+
+}
+
+
+
+
+
+func (r *InviationRepo) GetInvitationByTokenHashForUpdate(
+	ctx context.Context,
+	tokenHash string,
+) (
+	string,
+	string,
+	string,
+	string,
+	time.Time,
+	*time.Time,
+	error,
+) {
+
+	query := `
+		SELECT
+			id,
+			organization_id,
+			email,
+			role_id,
+			expires_at,
+			accepted_at
+		FROM invitations
+		WHERE token_hash = $1
+		FOR UPDATE
+	`
+
+	var (
+		invitationID   string
+		organizationID string
+		email          string
+		roleID         string
+		expiresAt      time.Time
+		acceptedAt     *time.Time
+	)
+
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		tokenHash,
+	).Scan(
+		&invitationID,
+		&organizationID,
+		&email,
+		&roleID,
+		&expiresAt,
+		&acceptedAt,
+	)
+
+	if err != nil {
+		return "", "", "", "", time.Time{}, nil, err
+	}
+
+	return invitationID, organizationID, email, roleID, expiresAt, acceptedAt, nil
+}
+
+func ( r *InviationRepo) MarkInvitationAccepted(ctx context.Context , tokenHash string) error {
+
+
+	query := `UPDATE invitations SET accepted_at = NOW() WHERE token_hash = $1
+		  AND accepted_at IS NULL`
+		  	_, err := r.db.Exec(
+		ctx,
+		query,
+		tokenHash,
+	)
+
+	return err
+}

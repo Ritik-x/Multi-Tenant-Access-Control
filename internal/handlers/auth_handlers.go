@@ -167,6 +167,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	accessToken, err := h.authService.GenerateAcessTokens(
 		user.ID,
+			user.Email,
 		organizationId,
 	)
 
@@ -212,7 +213,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 func (h *AuthHandler) Refresh(c *gin.Context) {
+
 	var req RefreshTRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid request",
@@ -220,44 +223,40 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 		return
 	}
 
-	refreshTOkenHash := h.authService.HashRefreshToken(req.RefreshToken)
-
-	// Rotate refresh token.
-	// Session lookup + row locking + revoke + new session
-	// are handled inside the same transaction.
-	newRefreshToken, userID, organizationID, expiresAT, err := h.sessionRepo.GetSessionByRefreshTokenHash(c.Request.Context(), refreshTOkenHash)
+	// Rotate refresh token
+	newRefreshToken, userID, organizationID, err :=
+		h.sessionService.RotateRefreshToken(
+			c.Request.Context(),
+			req.RefreshToken,
+		)
 
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": err.Error(),
+			"error": "invalid refresh token",
 		})
 		return
 	}
 
-	if time.Now().After(expiresAT) {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "refresh token expired",
+	// Get current user information
+	user, err := h.userRepo.GetUserByID(
+		c.Request.Context(),
+		userID,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "failed to get user",
 		})
 		return
 	}
 
-	////rotate refresh token
+	// Generate new access token
+	accessToken, err := h.authService.GenerateAcessTokens(
+		user.ID,
+		user.Email,
+		organizationID,
+	)
 
-	// newRefreshToken ,_,err := h.sessionService.RotateRefreshToken(c.Request.Context(),
-	// 		sessionID,
-	// 		userID,
-	// 		organizationID,)
-	// 		if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{
-	// 		"error": "failed to rotate refresh token",
-	// 	})
-	// 	return
-	// }
-
-	//GENerate a new refresh token
-
-	acessToken, err := h.authService.GenerateAcessTokens(userID,
-		organizationID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "failed to generate access token",
@@ -266,11 +265,9 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-
-		"message":     "refresh endpoint reached",
-		"acess-Token": acessToken,
-
-		"refesh-token": newRefreshToken,
+		"access_token":  accessToken,
+		"refresh_token": newRefreshToken,
+		"token_type":    "Bearer",
 	})
 }
 

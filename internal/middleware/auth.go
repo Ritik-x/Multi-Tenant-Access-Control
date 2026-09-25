@@ -69,6 +69,7 @@ claims ,ok := token.Claims.(*services.Claims)
 		return
 }
 c.Set("user_id"  , claims.UserID)
+c.Set("user_email", claims.Email)
 	c.Set("organization_id", claims.OrganizationID)
 	c.Next()
 }

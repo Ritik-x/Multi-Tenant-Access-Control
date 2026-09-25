@@ -4,55 +4,86 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"team-access-control/internal/repository"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"team-access-control/internal/repository"
 )
-type InviatationService struct {
-	invitationRepo *repository.InviationRepo
-		roleRepo       *repository.RoleRepository
-	authService *AuthService
 
-
+type InvitationService struct {
+	db              *pgxpool.Pool
+	invitationRepo  *repository.InviationRepo
+	roleRepo        *repository.RoleRepository
+	membershipRepo  *repository.MemberRepository
+	authService     *AuthService
+	auditLogService *AuditLogService
 }
 
-func NewInvitationService(invitationRepo *repository.InviationRepo ,	roleRepo       *repository.RoleRepository, authService *AuthService,) *InviatationService{
-	return &InviatationService{
-		invitationRepo: invitationRepo,
-		roleRepo:       roleRepo,
-
-		authService:    authService,
+func NewInvitationService(
+	db *pgxpool.Pool,
+	invitationRepo *repository.InviationRepo,
+	roleRepo *repository.RoleRepository,
+	membershipRepo *repository.MemberRepository,
+	authService *AuthService,
+	auditLogService *AuditLogService,
+) *InvitationService {
+	return &InvitationService{
+		db:              db,
+		invitationRepo:  invitationRepo,
+		roleRepo:        roleRepo,
+		membershipRepo:  membershipRepo,
+		authService:     authService,
+		auditLogService: auditLogService,
 	}
 }
 
-func ( s *InviatationService) CreateInvitation(	ctx context.Context,
+func (s *InvitationService) CreateInvitation(
+	ctx context.Context,
 	organizationID string,
+	userID string,
 	email string,
-	roleID string,) (string , string , error){
-		email = strings.ToLower(strings.TrimSpace(email))
+	roleID string,
+	ipAddress string,
+) (string, string, error) {
+
+	email = strings.ToLower(strings.TrimSpace(email))
+
 	if email == "" {
 		return "", "", fmt.Errorf("email is required")
 	}
-
-
 
 	if roleID == "" {
 		return "", "", fmt.Errorf("role id is required")
 	}
 
-	roleBelongsToOrg , err := s.roleRepo.RoleBelongsToOrganization(ctx , roleID , organizationID)
+	roleBelongsToOrg, err := s.roleRepo.RoleBelongsToOrganization(
+		ctx,
+		roleID,
+		organizationID,
+	)
 	if err != nil {
-	return "", "", fmt.Errorf(
-		"validate role: %w",
-		err,
-	)
-}
-if !roleBelongsToOrg{
-	return "", "", fmt.Errorf(
-		"role does not belong to organization",
-	)
-}
+		return "", "", fmt.Errorf("validate role: %w", err)
+	}
 
-	invitationToken , tokenHash , err := s.authService.GenerateInvitationToken()
+	if !roleBelongsToOrg {
+		return "", "", fmt.Errorf("role does not belong to organization")
+	}
+
+	// Start transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return "", "", fmt.Errorf("begin transaction: %w", err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	// Repositories using the same transaction
+	txInvitationRepo := repository.NewInviationRepository(tx)
+	txAuditLogRepo := repository.NewAuditLogRepository(tx)
+
+	invitationToken, tokenHash, err :=
+		s.authService.GenerateInvitationToken()
 
 	if err != nil {
 		return "", "", fmt.Errorf(
@@ -60,8 +91,10 @@ if !roleBelongsToOrg{
 			err,
 		)
 	}
+
 	expiresAt := time.Now().Add(48 * time.Hour)
-_, err = s.invitationRepo.CreateInviatation(
+
+	_, err = txInvitationRepo.CreateInviatation(
 		ctx,
 		organizationID,
 		email,
@@ -76,5 +109,120 @@ _, err = s.invitationRepo.CreateInviatation(
 			err,
 		)
 	}
-		return invitationToken, email, nil
+
+	var ip *string
+
+	if ipAddress != "" {
+		ip = &ipAddress
 	}
+
+	metaData := map[string]interface{}{
+		"email":   email,
+		"role_id": roleID,
+	}
+
+	if err := s.auditLogService.LogWithRepository(
+		ctx,
+		txAuditLogRepo,
+		organizationID,
+		&userID,
+		"invitation.created",
+		"invitation",
+		nil,
+		metaData,
+		ip,
+	); err != nil {
+		return "", "", fmt.Errorf("create audit log: %w", err)
+	}
+
+	// Commit invitation + audit log together
+	if err := tx.Commit(ctx); err != nil {
+		return "", "", fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return invitationToken, email, nil
+}
+
+func (s *InvitationService) AcceptInvitation(
+	ctx context.Context,
+	token string,
+	userEmail string,
+	userID string,
+) error {
+
+	token = strings.TrimSpace(token)
+	userEmail = strings.ToLower(strings.TrimSpace(userEmail))
+
+	if token == "" {
+		return fmt.Errorf("invitation token is required")
+	}
+
+	if userEmail == "" {
+		return fmt.Errorf("user email is required")
+	}
+
+	if userID == "" {
+		return fmt.Errorf("user id is required")
+	}
+
+	tokenHash := s.authService.HashRefreshToken(token)
+
+	// Start transaction
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	txInvitationRepo := repository.NewInviationRepository(tx)
+	txMembershipRepo := repository.NewMembershipRepository(tx)
+
+	// Lock invitation row
+	_, organizationID, invitedEmail, roleID, expiresAt, acceptedAt, err :=
+		txInvitationRepo.GetInvitationByTokenHashForUpdate(
+			ctx,
+			tokenHash,
+		)
+
+	if err != nil {
+		return fmt.Errorf("get invitation: %w", err)
+	}
+
+	if acceptedAt != nil {
+		return fmt.Errorf("invitation already accepted")
+	}
+
+	if time.Now().After(expiresAt) {
+		return fmt.Errorf("invitation expired")
+	}
+
+	if userEmail != invitedEmail {
+		return fmt.Errorf("invitation email does not match user")
+	}
+
+	// Create membership
+	if err := txMembershipRepo.CreateMembership(
+		ctx,
+		userID,
+		organizationID,
+		roleID,
+	); err != nil {
+		return fmt.Errorf("create membership: %w", err)
+	}
+
+	// Mark invitation as accepted
+	if err := txInvitationRepo.MarkInvitationAccepted(
+		ctx,
+		tokenHash,
+	); err != nil {
+		return fmt.Errorf("mark invitation accepted: %w", err)
+	}
+
+	// Commit membership + invitation update
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return nil
+}

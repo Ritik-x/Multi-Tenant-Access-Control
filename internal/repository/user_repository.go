@@ -82,3 +82,41 @@ func (r *UserRepository) GetUserByEmail(
 
 	return user, nil
 }
+func (r *UserRepository) GetUserByID(
+	ctx context.Context,
+	userID string,
+) (*models.User, error) {
+
+	query := `
+		SELECT
+			id,
+			name,
+			email,
+			password_hash,
+			created_at,
+			updated_at
+		FROM users
+		WHERE id = $1
+	`
+
+	var user models.User
+
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		userID,
+	).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.PasswordHash,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}

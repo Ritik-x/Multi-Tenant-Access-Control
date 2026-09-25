@@ -57,6 +57,12 @@ func main() {
 	// Invitation
 	invitationRepository := repository.NewInviationRepository(db)
 
+	auditLogRepository := repository.NewAuditLogRepository(db)
+
+auditLogService := services.NewAuditLogService(
+	auditLogRepository,
+)
+
 	// RBAC
 	rbacRepository := repository.NewRBACRepository(db)
 
@@ -66,10 +72,13 @@ func main() {
 
 	// Invitation Service
 	invitationService := services.NewInvitationService(
-		invitationRepository,
-		roleRepository,
-		authService,
-	)
+	db,
+	invitationRepository,
+	roleRepository,
+	membershipRepository,
+	authService,
+	auditLogService,
+)
 
 	// Session Service
 	sessionService := services.NewSessionService(
@@ -103,6 +112,7 @@ func main() {
 		registrationService,
 		sessionRepository,
 		sessionService,
+
 	)
 
 	invitationHandler := handlers.NewServicesHandler(
@@ -184,6 +194,8 @@ func main() {
 		),
 		invitationHandler.CreateInvitation,
 	)
+
+	router.POST("/invitations/accept" , middleware.AuthMiddleware(cfg.JWTSecret) , invitationHandler.AcceptInvitation)
 
 	// =========================
 	// SERVER
