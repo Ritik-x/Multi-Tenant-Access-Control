@@ -80,7 +80,7 @@ func (s *InvitationService) CreateInvitation(
 
 	// Repositories using the same transaction
 	txInvitationRepo := repository.NewInviationRepository(tx)
-	// txAuditLogRepo := repository.NewAuditLogRepository(tx)
+	// txAuditLogRepo := respository.NewAuditLogRepository(tx)
 
 	invitationToken, tokenHash, err :=
 		s.authService.GenerateInvitationToken()

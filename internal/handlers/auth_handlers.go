@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/mail"
 	"strings"
 	"team-access-control/internal/repository"
 	"team-access-control/internal/services"
@@ -73,6 +74,52 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	req.OrganizationSlug = strings.ToLower(
 		strings.TrimSpace(req.OrganizationSlug),
 	)
+
+if req.Name == ""{
+	c.JSON(http.StatusBadRequest , gin.H{
+"error":"name is required", 
+	})
+}
+_, err := mail.ParseAddress(req.Email)
+
+if err != nil {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "invalid email format",
+	})
+	return
+}
+
+if req.Email == ""  {
+	c.JSON(http.StatusBadRequest , gin.H{
+"error":"email  is required", 
+	})
+}
+if req.Password == "" {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "password is required",
+	})
+	return
+}
+if len(req.Password) < 8 {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "password must be at least 8 characters",
+	})
+	return
+}
+
+if req.OrganizationName == "" {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "organization name is required",
+	})
+	return
+}
+
+if req.OrganizationSlug == "" {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "organization slug is required",
+	})
+	return
+}
 
 	passwordHash, err := h.authService.HashPassword(req.Password)
 	if err != nil {
