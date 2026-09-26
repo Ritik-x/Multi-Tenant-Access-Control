@@ -1,0 +1,9 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: Multi-tenant team access control backend built with Go and Gin.
+  title: Team Access Control API
+  version: "1.0"
+paths: {}
+swagger: "2.0"
