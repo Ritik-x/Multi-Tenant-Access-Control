@@ -123,7 +123,9 @@ refreshRateLimiter := middleware.NewRateLimiter(
 	10,
 	time.Minute,
 )
-
+go loginRateLimiter.Cleanup()
+go postRateLimiter.Cleanup()
+go refreshRateLimiter.Cleanup()
 
 
 
@@ -166,6 +168,9 @@ refreshRateLimiter := middleware.NewRateLimiter(
 	router.POST("/login",loginRateLimiter.Middleware(), authHandler.Login)
 	router.POST("/refresh",refreshRateLimiter.Middleware(), authHandler.Refresh)
 	router.POST("/logout", authHandler.Logout)
+
+
+
 
 	// =========================
 	// SESSION ROUTES

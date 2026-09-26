@@ -71,3 +71,22 @@ c.JSON(http.StatusTooManyRequests, gin.H{
 		c.Next()
 	}
 }
+
+func (rl *RateLimiter) Cleanup() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		rl.mu.Lock()
+
+		now := time.Now()
+
+		for key, v := range rl.visitors {
+			if now.Sub(v.windowStart) >= rl.window {
+				delete(rl.visitors, key)
+			}
+		}
+
+		rl.mu.Unlock()
+	}
+}
