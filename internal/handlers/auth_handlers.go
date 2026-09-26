@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/mail"
+	"regexp"
 	"strings"
 	"team-access-control/internal/repository"
 	"team-access-control/internal/services"
@@ -107,6 +108,13 @@ if len(req.Password) < 8 {
 	return
 }
 
+
+if len(req.Password) > 75 {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "password must be at most 72 characters",
+	})
+	return
+}
 if req.OrganizationName == "" {
 	c.JSON(http.StatusBadRequest, gin.H{
 		"error": "organization name is required",
@@ -114,6 +122,23 @@ if req.OrganizationName == "" {
 	return
 }
 
+
+
+
+//slug validation cheeckup 
+
+
+slugPattern := regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+
+
+
+
+if !slugPattern.MatchString(req.OrganizationSlug) {
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error": "organization slug can only contain lowercase letters, numbers, and hyphens",
+	})
+	return
+}
 if req.OrganizationSlug == "" {
 	c.JSON(http.StatusBadRequest, gin.H{
 		"error": "organization slug is required",
