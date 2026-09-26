@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"team-access-control/internal/config"
 	"team-access-control/internal/database"
@@ -106,6 +107,26 @@ auditLogHandler := handlers.NewAuditLogHandler(
 		rbacRepository,
 	)
 
+	// ---------------------------------------
+
+
+// rate limiters 
+
+
+rateLimiter := middleware.NewRateLimiter(5 , time.Minute)
+postRateLimiter := middleware.NewRateLimiter(5 , time.Minute)
+loginRateLimiter := middleware.NewRateLimiter(
+	5,
+	time.Minute,
+)
+refreshRateLimiter := middleware.NewRateLimiter(
+	10,
+	time.Minute,
+)
+
+
+
+
 	// =========================
 	// HANDLERS
 	// =========================
@@ -131,7 +152,7 @@ auditLogHandler := handlers.NewAuditLogHandler(
 	router := gin.Default()
 
 	// Health
-	router.GET("/health", func(c *gin.Context) {
+	router.GET("/health", rateLimiter.Middleware(),func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
 		})
@@ -141,9 +162,9 @@ auditLogHandler := handlers.NewAuditLogHandler(
 	// AUTH ROUTES
 	// =========================
 
-	router.POST("/register", authHandler.Register)
-	router.POST("/login", authHandler.Login)
-	router.POST("/refresh", authHandler.Refresh)
+	router.POST("/register", postRateLimiter.Middleware(),authHandler.Register)
+	router.POST("/login",loginRateLimiter.Middleware(), authHandler.Login)
+	router.POST("/refresh",refreshRateLimiter.Middleware(), authHandler.Refresh)
 	router.POST("/logout", authHandler.Logout)
 
 	// =========================
