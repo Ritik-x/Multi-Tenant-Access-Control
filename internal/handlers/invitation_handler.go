@@ -129,7 +129,7 @@ func ( h *InvitationHandler) AcceptInvitation(c *gin.Context ){
 		return
 	}
 
-	err := h.invitationService.AcceptInvitatio(c.Request.Context() , req.Token , userEmail,userId)
+	err := h.invitationService.AcceptInvitation(c.Request.Context() , req.Token , userEmail,userId)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),

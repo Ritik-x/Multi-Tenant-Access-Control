@@ -1,6 +1,10 @@
 package repository
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+	"team-access-control/internal/models"
+)
 
 type AuditLogRepo struct {
 	db DBTX
@@ -40,4 +44,53 @@ func(r *AuditLogRepo) CreateAuditLogs(
 	)
 
 	return err
+}
+
+func ( r*AuditLogRepo) GetAuditLogs(ctx context.Context , organizationId string ) ([]models.AuditLogs,error){
+	query := `SELECT id , organization_id , user_id , action , resource , resource_id , metadata,
+			ip_address,
+			created_at FROM audit_logs   WHERE organization_id = $1
+		ORDER BY created_at DESC`
+
+		rows , err := r.db.Query(ctx , query , organizationId )
+			if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+
+	var logs []models.AuditLogs
+	for rows.Next(){
+		var log models.AuditLogs
+		var metaData []byte
+		var ipAddress *string
+			err := rows.Scan(
+			&log.ID,
+			&log.OrganizationID,
+			&log.UserID,
+			&log.Action,
+			&log.Resource,
+			&log.ResourceID,
+			&metaData,
+			&ipAddress,
+			&log.CreatedAt,
+		) 
+		if err !=nil {
+			return nil , err
+		}
+		log.IPAddress = ipAddress
+
+		if metaData != nil {
+			if err := json.Unmarshal(metaData , &log.Metadata); err != nil {
+return nil , err
+			}
+		}
+		logs = append(logs, log)
+		
+	}
+		if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return logs , err
 }

@@ -80,7 +80,7 @@ func (s *InvitationService) CreateInvitation(
 
 	// Repositories using the same transaction
 	txInvitationRepo := repository.NewInviationRepository(tx)
-	txAuditLogRepo := repository.NewAuditLogRepository(tx)
+	// txAuditLogRepo := repository.NewAuditLogRepository(tx)
 
 	invitationToken, tokenHash, err :=
 		s.authService.GenerateInvitationToken()
@@ -121,9 +121,9 @@ func (s *InvitationService) CreateInvitation(
 		"role_id": roleID,
 	}
 
-	if err := s.auditLogService.LogWithRepository(
+	if err := s.auditLogService.Logs(
 		ctx,
-		txAuditLogRepo,
+		// txAuditLogRepo,
 		organizationID,
 		&userID,
 		"invitation.created",
@@ -131,7 +131,7 @@ func (s *InvitationService) CreateInvitation(
 		nil,
 		metaData,
 		ip,
-	); err != nil {
+		); err != nil {
 		return "", "", fmt.Errorf("create audit log: %w", err)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"team-access-control/internal/models"
 	"team-access-control/internal/repository"
 )
 
@@ -47,3 +48,18 @@ func ( s *AuditLogService) Logs(
 		metadataJSON,
 		ipAddress,)
 }
+
+
+func( s *AuditLogService) GetLogs ( ctx context.Context , organizationId string)  ([]models.AuditLogs , error){
+	logs , err := s.repo.GetAuditLogs(
+		ctx , organizationId,
+	)
+		if err != nil {
+		return nil, fmt.Errorf("get audit logs: %w", err)
+	}
+	return logs , nil
+}
+
+
+
+

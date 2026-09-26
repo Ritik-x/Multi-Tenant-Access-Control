@@ -56,5 +56,19 @@ type Invitation struct {
 	RoleID         string     `json:"role_id"`
 	ExpiresAt      time.Time  `json:"expires_at"`
 	AcceptedAt     *time.Time `json:"accepted_at,omitempty"`
-	CreatedAt      time.Time  `json:"created_at`
+		CreatedAt      time.Time              `json:"created_at"`
+}
+
+
+
+type AuditLogs struct{
+	ID string `json:"id"`
+	OrganizationID string     `json:"organization_id"`
+	UserID         *string    `json:"user_id"`
+	Action string  `json:"action"`
+	Resource       string                 `json:"resource"`
+	ResourceID     *string                `json:"resource_id,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	IPAddress      *string                `json:"ip_address,omitempty"`
+	CreatedAt      time.Time              `json:"created_at"`
 }

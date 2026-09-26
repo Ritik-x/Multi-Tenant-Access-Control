@@ -63,6 +63,11 @@ auditLogService := services.NewAuditLogService(
 	auditLogRepository,
 )
 
+
+auditLogHandler := handlers.NewAuditLogHandler(
+		auditLogService,
+)
+
 	// RBAC
 	rbacRepository := repository.NewRBACRepository(db)
 
@@ -197,6 +202,9 @@ auditLogService := services.NewAuditLogService(
 
 	router.POST("/invitations/accept" , middleware.AuthMiddleware(cfg.JWTSecret) , invitationHandler.AcceptInvitation)
 
+
+
+	router.GET("/organizations/:organizationID/audit-logs",middleware.AuthMiddleware(cfg.JWTSecret), middleware.RequiredPermission(rbacService ,"audit .read" ), auditLogHandler.GetAuditLogs)
 	// =========================
 	// SERVER
 	// =========================
