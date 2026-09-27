@@ -55,7 +55,7 @@ func (s *AuditLogService) GetLogs(
 	organizationID string,
 	page int,
 	limit int,
-) ([]models.AuditLog, error) {
+) ([]models.AuditLogs, error) {
 
 	logs, err := s.repo.GetAuditLogs(
 		ctx,
@@ -70,5 +70,4 @@ func (s *AuditLogService) GetLogs(
 
 	return logs, nil
 }
-
 

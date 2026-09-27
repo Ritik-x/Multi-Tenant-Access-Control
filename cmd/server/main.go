@@ -17,6 +17,7 @@ import (
 	"team-access-control/internal/database"
 	"team-access-control/internal/handlers"
 	"team-access-control/internal/middleware"
+	"team-access-control/internal/redis"
 	"team-access-control/internal/repository"
 	"team-access-control/internal/services"
 
@@ -46,6 +47,15 @@ func main() {
 	}
 	defer db.Close()
 
+
+	//redis
+
+	redisClient , err := redis.NewRedis()
+
+	if err != nil {
+	log.Fatal(err)
+}
+defer redisClient.Close()
 	// =========================
 	// SERVICES
 	// =========================
@@ -129,19 +139,36 @@ auditLogHandler := handlers.NewAuditLogHandler(
 // rate limiters 
 
 
-rateLimiter := middleware.NewRateLimiter(5 , time.Minute)
-postRateLimiter := middleware.NewRateLimiter(5 , time.Minute)
-loginRateLimiter := middleware.NewRateLimiter(
+// Rate limiters
+
+healthRateLimiter := middleware.NewRedisRateLimiter(
+	redisClient,
 	5,
 	time.Minute,
+	"health",
 )
-refreshRateLimiter := middleware.NewRateLimiter(
-	10,
+
+loginRateLimiter := middleware.NewRedisRateLimiter(
+	redisClient,
+	5,
 	time.Minute,
+	"login",
 )
-go loginRateLimiter.Cleanup()
-go postRateLimiter.Cleanup()
-go refreshRateLimiter.Cleanup()
+
+postRateLimiter := middleware.NewRedisRateLimiter(
+	redisClient,
+	5,
+	time.Minute,
+	"register",
+)
+
+refreshRateLimiter := middleware.NewRedisRateLimiter(
+	redisClient,
+	5,
+	time.Minute,
+	"refresh",
+)
+
 
 
 
@@ -176,7 +203,7 @@ router.GET(
 	ginSwagger.WrapHandler(swaggerFiles.Handler),
 )
 	// Health
-	router.GET("/health", rateLimiter.Middleware(),func(c *gin.Context) {
+	router.GET("/health", healthRateLimiter.Middleware(),func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status": "ok",
 		})
