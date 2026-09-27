@@ -59,6 +59,16 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// @Summary Register a new user
+// @Description Creates a new user, organization, owner role, and membership.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "Registration details"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req RegisterRequest
 
@@ -187,6 +197,19 @@ if req.OrganizationSlug == "" {
 		"created_at":      user.CreatedAt,
 	})
 }
+
+
+// @Summary Login user
+// @Description Authenticates a user and returns access and refresh tokens.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login credentials"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 
 	var req LoginRequest
@@ -284,6 +307,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	})
 }
 
+// @Summary Refresh access token
+// @Description Rotates the refresh token and returns a new access token and refresh token.
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body RefreshTRequest true "Refresh token"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /refresh [post]
 func (h *AuthHandler) Refresh(c *gin.Context) {
 
 	var req RefreshTRequest
@@ -343,6 +377,16 @@ func (h *AuthHandler) Refresh(c *gin.Context) {
 	})
 }
 
+// @Summary Logout user
+// @Description Revokes the current user's refresh-token session.
+// @Tags Auth
+// @Produce json
+// @Param session_id path string true "Session ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
 func (h *AuthHandler) Logout(c *gin.Context) {
 	var req RefreshTRequest
 
@@ -379,6 +423,16 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 }
 
+
+// @Summary Get active sessions
+// @Description Returns all active sessions for the authenticated user.
+// @Tags Sessions
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /sessions/{session_id} [delete]
 func (h *AuthHandler) GetSessions(c *gin.Context) {
 	userID := c.GetString("user_id")
 
@@ -405,7 +459,18 @@ func (h *AuthHandler) GetSessions(c *gin.Context) {
 
 
 
-
+// @Summary Revoke a session
+// @Description Revokes a specific active session for the authenticated user.
+// @Tags Sessions
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Session ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /sessions/{id} [delete]
 func ( h *AuthHandler) DeleteRevoke(c *gin.Context){
 	userID := c.GetString("user_id")
 	if userID == "" {
@@ -448,8 +513,15 @@ err := h.sessionService.RevokeSession(
 	}
 
 
-
-
+// @Summary Revoke all sessions
+// @Description Revokes all active sessions for the authenticated user.
+// @Tags Sessions
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /sessions/revoke-all [post]
 	func ( h *AuthHandler) RevokeAllsessions ( c *gin.Context){
 		userID := c.GetString("user_id")
 		if userID == ""{

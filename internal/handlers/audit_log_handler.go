@@ -17,8 +17,18 @@ func NewAuditLogHandler(auditLogService *services.AuditLogService,) *AuditLogHan
 		auditLogService: auditLogService,
 }
 }
-
-
+// @Summary Get audit logs
+// @Description Returns audit logs for the authenticated user's organization.
+// @Tags Audit Logs
+// @Produce json
+// @Security BearerAuth
+// @Param organizationID path string true "Organization ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /organizations/{organizationID}/audit-logs [get]
 func( h *AuditLogHandlre) GetAuditLogs( c *gin.Context){
 	organizationId := c.Param("organizationID")
 

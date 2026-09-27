@@ -5,6 +5,9 @@ package main
 // @description Multi-tenant team access control backend built with Go and Gin.
 // @host localhost:8080
 // @BasePath /
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 import (
 	"log"
 	"net/http"
@@ -21,7 +24,9 @@ import (
 	"github.com/joho/godotenv"
 
 	// swaggerFiles "github.com/swaggo/files"
-	swaggerFiles "github.com/swaggo/files/v2"
+	// swaggerFiles "github.com/swaggo/files/v2"
+	// swaggerFiles "github.com/swaggo/files/v2"
+	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
 	_ "team-access-control/docs"
@@ -162,8 +167,14 @@ go refreshRateLimiter.Cleanup()
 	// ROUTER
 	// =========================
 
+
+
+
 	router := gin.Default()
-router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+router.GET(
+	"/swagger/*any",
+	ginSwagger.WrapHandler(swaggerFiles.Handler),
+)
 	// Health
 	router.GET("/health", rateLimiter.Middleware(),func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{

@@ -26,7 +26,20 @@ func NewServicesHandler(
 
 	
 }
-
+// @Summary Create invitation
+// @Description Creates an invitation for a user to join an organization.
+// @Tags Invitations
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param organizationID path string true "Organization ID"
+// @Param request body CreateInvitationRequest true "Invitation details"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /organizations/{organizationID}/invitations [post]
 func (h *InvitationHandler) CreateInvitation(c *gin.Context) {
 
 	var req CreateInvitationRequest
@@ -98,7 +111,19 @@ if organizationID != tokenOrganizationId{
 
 
 
-
+// @Summary Accept invitation
+// @Description Accepts an organization invitation for the authenticated user's email.
+// @Tags Invitations
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body AcceptInvitationRequest true "Invitation token"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /invitations/accept [post]
 
 func ( h *InvitationHandler) AcceptInvitation(c *gin.Context ){
 	var req AcceptInvitationRequest
