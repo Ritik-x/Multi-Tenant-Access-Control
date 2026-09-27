@@ -46,13 +46,17 @@ func(r *AuditLogRepo) CreateAuditLogs(
 	return err
 }
 
-func ( r*AuditLogRepo) GetAuditLogs(ctx context.Context , organizationId string ) ([]models.AuditLogs,error){
+func ( r*AuditLogRepo) GetAuditLogs(ctx context.Context , organizationId string  , page int,
+	limit int,) ([]models.AuditLogs,error){
+			offset := (page - 1) * limit
 	query := `SELECT id , organization_id , user_id , action , resource , resource_id , metadata,
 			ip_address,
 			created_at FROM audit_logs   WHERE organization_id = $1
-		ORDER BY created_at DESC`
+		ORDER BY created_at DESC LIMIT $2
+		OFFSET $3`
 
-		rows , err := r.db.Query(ctx , query , organizationId )
+		rows , err := r.db.Query(ctx , query , organizationId , limit,
+		offset, )
 			if err != nil {
 		return nil, err
 	}

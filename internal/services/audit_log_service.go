@@ -50,16 +50,25 @@ func ( s *AuditLogService) Logs(
 }
 
 
-func( s *AuditLogService) GetLogs ( ctx context.Context , organizationId string)  ([]models.AuditLogs , error){
-	logs , err := s.repo.GetAuditLogs(
-		ctx , organizationId,
+func (s *AuditLogService) GetLogs(
+	ctx context.Context,
+	organizationID string,
+	page int,
+	limit int,
+) ([]models.AuditLog, error) {
+
+	logs, err := s.repo.GetAuditLogs(
+		ctx,
+		organizationID,
+		page,
+		limit,
 	)
-		if err != nil {
+
+	if err != nil {
 		return nil, fmt.Errorf("get audit logs: %w", err)
 	}
-	return logs , nil
+
+	return logs, nil
 }
-
-
 
 
