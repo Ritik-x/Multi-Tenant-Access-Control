@@ -56,6 +56,12 @@ func main() {
 	log.Fatal(err)
 }
 defer redisClient.Close()
+
+
+
+
+rbacCache:=services.NewRBACCache(	redisClient,
+	5*time.Minute,)
 	// =========================
 	// SERVICES
 	// =========================
@@ -131,6 +137,7 @@ auditLogHandler := handlers.NewAuditLogHandler(
 	// RBAC Service
 	rbacService := services.NewRBACService(
 		rbacRepository,
+		rbacCache,
 	)
 
 	// ---------------------------------------

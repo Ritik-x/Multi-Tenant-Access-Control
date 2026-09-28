@@ -12,14 +12,15 @@ type RBACRepository interface {
 
 type RBACService struct {
 	repo RBACRepository
+	cache *RBACCache
 }
 
-func NewRBACService(repo RBACRepository) *RBACService {
+func NewRBACService(repo RBACRepository , cache *RBACCache,) *RBACService {
 	return &RBACService{
 		repo: repo,
+			cache: cache,
 	}
 }
-
 func (s *RBACService) HasPermission(
 	ctx context.Context,
 	userID string,
@@ -27,17 +28,56 @@ func (s *RBACService) HasPermission(
 	requiredPermission string,
 ) (bool, error) {
 
-	permissions, err := s.repo.GetUserPermissions(
+	permissions, found, err := s.cache.GetPermissions(
 		ctx,
-		userID,
 		organizationID,
+		userID,
 	)
 
 	if err != nil {
-		return false, err
+		// Redis error → PostgreSQL fallback
+		permissions, err = s.repo.GetUserPermissions(
+			ctx,
+			userID,
+			organizationID,
+		)
+
+		if err != nil {
+			return false, err
+		}
+
+		// DB permissions → Redis
+		_ = s.cache.setPermissions(
+			ctx,
+			organizationID,
+			userID,
+			permissions,
+		)
+
+	} else if !found {
+		// Cache MISS → PostgreSQL
+		permissions, err = s.repo.GetUserPermissions(
+			ctx,
+			userID,
+			organizationID,
+		)
+
+		if err != nil {
+			return false, err
+		}
+
+		// DB permissions → Redis
+		_ = s.cache.setPermissions(
+			ctx,
+			organizationID,
+			userID,
+			permissions,
+		)
 	}
 
-	for _ , permission := range permissions {
+	// Cache HIT ya DB se permissions milne ke baad
+	// dono cases mein yahi permission check chalega.
+	for _, permission := range permissions {
 		if permission == requiredPermission {
 			return true, nil
 		}
