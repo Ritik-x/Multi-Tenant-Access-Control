@@ -6,7 +6,7 @@ The system provides secure authentication, organization-level access control, RB
 
 ## 🚀 Live Demo
 
-* **Live API:** https://multi-tenant-access-control.onrender.com
+* **Live API:** https://multi-tenant-access-control.onrender.com/health?utm_source=chatgpt.com
 * **Health Check:** https://multi-tenant-access-control.onrender.com/health
 * **Swagger API Docs:** https://multi-tenant-access-control.onrender.com/swagger/index.html
 * **GitHub:** https://github.com/Ritik-x/Multi-Tenant-Access-Control
