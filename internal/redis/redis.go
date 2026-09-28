@@ -3,14 +3,22 @@ package redis
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/redis/go-redis/v9"
 )
 
 func NewRedis() (*redis.Client, error) {
 
+	addr := os.Getenv("REDIS_ADDR")
+
+	if addr == "" {
+		addr = "localhost:6379"
+	}
+
+
 	client := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
+		Addr: addr,
 	})
 
 	ctx := context.Background()
